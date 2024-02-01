@@ -120,6 +120,22 @@ var (
 			})
 		},
 		utils.RegisterCourseName: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			// responding immedately to defer interaction timeout
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Attempting to register course...",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+
+			// interaction message strings for editing after server response(s)
+			var (
+				successString = "Course registered successfully!"
+				failString    = "Failed to register course, something went wrong."
+				existsString  = "Course already registered for this server."
+			)
+
 			guildId := i.GuildID
 			canvasSecret := i.ApplicationCommandData().Options[0].StringValue()
 			courseId := i.ApplicationCommandData().Options[1].StringValue()
@@ -141,6 +157,9 @@ var (
 			if exists, err := utils.GuildIdExists(guildId); err != nil {
 				return
 			} else if exists {
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &existsString,
+				})
 				log.Println("Course already registered for this server")
 				return
 			}
@@ -148,17 +167,17 @@ var (
 			{
 				err := utils.RegisterCourse(guildId, canvasSecret, courseId, authRoleId)
 				if err != nil {
+					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+						Content: &failString,
+					})
 					return
 				}
 			}
 
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Course registered successfully!",
-					Flags:   discordgo.MessageFlagsEphemeral,
-				},
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: &successString,
 			})
+
 		},
 	}
 )

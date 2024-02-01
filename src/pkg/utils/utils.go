@@ -35,7 +35,7 @@ func GuildIdExists(guildId string) bool {
 
 var (
 	// name that the command is invoked by
-	RegisterCourseName = "/registercourse"
+	RegisterCourseName = "registercourse"
 
 	// invoked by "/registercourse [canvas_secret]"
 	RegisterCourseCommand = discordgo.ApplicationCommand{

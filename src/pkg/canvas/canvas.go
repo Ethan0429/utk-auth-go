@@ -31,15 +31,15 @@ type Enrollment struct {
 }
 
 func getNextURL(linkHeader string) string {
-    links := strings.Split(linkHeader, ",")
-    for _, link := range links {
-        parts := strings.Split(link, ";")
-        if len(parts) == 2 && strings.TrimSpace(parts[1]) == `rel="next"` {
-            nextURL := strings.Trim(parts[0], "<>")
-            return nextURL
-        }
-    }
-    return ""
+	links := strings.Split(linkHeader, ",")
+	for _, link := range links {
+		parts := strings.Split(link, ";")
+		if len(parts) == 2 && strings.TrimSpace(parts[1]) == `rel="next"` {
+			nextURL := strings.Trim(parts[0], "<>")
+			return nextURL
+		}
+	}
+	return ""
 }
 
 func GetCourseStudents(courseId string, canvasSecret string) ([]Student, error) {
@@ -54,7 +54,7 @@ func GetCourseStudents(courseId string, canvasSecret string) ([]Student, error) 
 		}
 
 		request.Header.Add("Authorization", "Bearer "+canvasSecret)
-client := &http.Client{}
+		client := &http.Client{}
 		response, err := client.Do(request)
 		if err != nil {
 			log.Println("Error sending request to Canvas API while getting course students:", err)
@@ -81,8 +81,9 @@ client := &http.Client{}
 			name := words[0] + " " + words[len(words)-1]
 			students = append(students, Student{NetId: netId, Name: name})
 		}
-    url = getNextURL(response.Header.Get("Link"))
+		url = getNextURL(response.Header.Get("Link"))
 	}
 
+	log.Println(len(students), "registered to server_config.json")
 	return students, nil
 }

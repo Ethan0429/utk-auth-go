@@ -84,6 +84,12 @@ func GetCourseStudents(courseId string, canvasSecret string) ([]Student, error) 
 		url = getNextURL(response.Header.Get("Link"))
 	}
 
+	// Name field contains only the first and last words
+	for i, student := range students {
+		words := strings.Fields(student.Name)
+		students[i].Name = words[0] + " " + words[len(words)-1]
+	}
+
 	log.Println(len(students), "registered to server_config.json")
 	return students, nil
 }

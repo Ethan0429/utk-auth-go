@@ -31,7 +31,7 @@ func init() {
 	if err != nil {
 		log.Fatal("Error creating Discord session")
 	}
-	session.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
+	session.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentsMessageContent | discordgo.IntentsGuildMembers
 }
 
 // initialize bot commands

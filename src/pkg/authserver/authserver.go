@@ -1,6 +1,7 @@
 package authserver
 
 import (
+  "sync"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 	"os"
 )
 
+var mutex sync.Mutex
 var session *discordgo.Session
 
 func init() {
@@ -62,6 +64,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	// check if id already exists
 	{
+    mutex.Lock()
 		file, err := ioutil.ReadFile("/data/tokens.json")
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -79,6 +82,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+    mutex.Unlock()
 	}
 
 	token, err := generateToken()
@@ -88,6 +92,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the existing tokens
+  mutex.Lock()
 	file, err := ioutil.ReadFile("/data/tokens.json")
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -103,6 +108,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing file", http.StatusInternalServerError)
 		return
 	}
+  mutex.Unlock()
 
 	// Add or update the token for the user
 	tokens[userDiscordID] = TokenData{Token: token, GuildID: guildDiscordID}
@@ -114,11 +120,13 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+  mutex.Lock()
 	err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
 	if err != nil {
 		http.Error(w, "Error writing to file", http.StatusInternalServerError)
 		return
 	}
+  mutex.Unlock()
 
 	response := TokenResponse{Token: token}
 	w.Header().Set("Content-Type", "application/json")
@@ -135,6 +143,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+  mutex.Lock()
 	file, err := ioutil.ReadFile("/data/tokens.json")
 	if err != nil {
 		http.Error(w, "Error reading file", http.StatusInternalServerError)
@@ -147,6 +156,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error parsing file", http.StatusInternalServerError)
 		return
 	}
+  mutex.Unlock()
 
 	if tokenData, ok := tokens[userDiscordID]; ok {
 		if tokenData.Token == token {
@@ -159,11 +169,13 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 				"   Role ID: %s\n",
 				userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
 
+      mutex.Lock()
 			err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
 			if err != nil {
 				log.Println("Error adding roll to user:", err)
 			}
       log.Println("Role added successfully")
+      mutex.Unlock()
 
 			// remove key from map
 			delete(tokens, userDiscordID)
@@ -173,7 +185,11 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				http.Error(w, "Error marshalling JSON", http.StatusInternalServerError)
 			}
+
+      mutex.Lock()
 			err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
+      mutex.Unlock()
+
 			if err != nil {
 				http.Error(w, "Error writing to file", http.StatusInternalServerError)
 			}

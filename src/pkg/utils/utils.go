@@ -14,7 +14,7 @@ type ServerConfig struct {
 }
 
 func GuildIdExists(guildId string) bool {
-	file, err := ioutil.ReadFile("data/server_config.json")
+	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {
 		log.Println("Error reading server_config.json while checking for guildId")
 		return false
@@ -68,8 +68,8 @@ var (
 
 func RegisterCourse(guildId string, canvasSecret string, courseId string, authRoleId string) error {
   log.Println("Registering course for guildId:", guildId)
-	if _, err := os.Stat("data/server_config.json"); os.IsNotExist(err) {
-		_, err := os.Create("data/server_config.json")
+	if _, err := os.Stat("/data/server_config.json"); os.IsNotExist(err) {
+		_, err := os.Create("/data/server_config.json")
 		if err != nil {
 			log.Println("Error creating server_config.json while registering course")
 			return err
@@ -77,7 +77,7 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 	}
 
 	// open /data/server_config.json and add a new course to the list
-	file, err := ioutil.ReadFile("data/server_config.json")
+	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {
 		log.Println("Error reading server_config.json while registering course")
 	}
@@ -106,7 +106,7 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 		log.Println("Error marshalling server_config.json while registering course")
 		return err
 	}
-	err = ioutil.WriteFile("data/server_config.json", serverConfigBytes, 0644)
+	err = ioutil.WriteFile("/data/server_config.json", serverConfigBytes, 0644)
 	if err != nil {
 		log.Println("Error writing server_config.json while registering course")
 		return err

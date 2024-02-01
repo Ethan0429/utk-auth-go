@@ -14,9 +14,22 @@ import (
 var session *discordgo.Session
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file")
+	{
+		err := godotenv.Load()
+		if err != nil {
+			log.Println("Error loading .env file")
+		}
+	}
+
+	{
+		// create file server_config.json if it doesn't exist
+		if _, err := os.Stat("/data/server_config.json"); os.IsNotExist(err) {
+			file, err := os.Create("/data/server_config.json")
+			if err != nil {
+				log.Println("Error creating server_config.json")
+			}
+			defer file.Close()
+		}
 	}
 }
 
@@ -48,7 +61,7 @@ var (
 			if exists, err := utils.GuildIdExists(i.GuildID); err != nil {
 				return
 			} else if !exists {
-        log.Println("No course is registered for this server")
+				log.Println("No course is registered for this server")
 				embed := &discordgo.MessageEmbed{
 					Title:       "Authentication",
 					Description: "No course is registered for this server.\nPlease use **/registercourse** to register a course.",

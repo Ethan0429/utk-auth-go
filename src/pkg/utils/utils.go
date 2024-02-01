@@ -100,9 +100,8 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 		}
 	}
 
-	students, err := canvas.GetCourseStudents(guildId, canvasSecret)
+	students, err := canvas.GetCourseStudents(courseId, canvasSecret)
 	if err != nil {
-		log.Println("Error getting course students while registering course")
 		return err
 	}
 	newCourse := canvas.Course{

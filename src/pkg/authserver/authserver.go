@@ -150,9 +150,19 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 
 	if tokenData, ok := tokens[userDiscordID]; ok {
 		if tokenData.Token == token {
-			fmt.Fprintln(w, "Verification successful") 
-      // add role to user
-      session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
+			fmt.Fprintln(w, "Verification successful")
+
+			// add role to user
+			log.Printf("Adding role for -"+
+        "   User ID: %s\n"+
+        "   Guild ID: %s\n"+
+        "   Role ID: %s\n",
+        userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
+
+			err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
+			if err != nil {
+				log.Println("Error adding roll to user:", err)
+			}
 
 			// remove key from map
 			delete(tokens, userDiscordID)
@@ -174,7 +184,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func StartServer(sessionPass *discordgo.Session) {
-  session = sessionPass
+	session = sessionPass
 	port := os.Getenv("PORT")
 	http.HandleFunc("/generate-user-token", GenerateUserTokenHandler)
 	http.HandleFunc("/verify", VerifyHandler)

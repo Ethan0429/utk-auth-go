@@ -44,7 +44,7 @@ var (
 	// define command handlers
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		auth.Name: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-      // check if guild exists before initiating authentication
+			// check if guild exists before initiating authentication
 			if !utils.GuildIdExists(i.GuildID) {
 				log.Println("No course is registered for this server")
 
@@ -60,7 +60,7 @@ var (
 						Flags:  discordgo.MessageFlagsEphemeral,
 					},
 				})
-        return
+				return
 			}
 			netid := i.ApplicationCommandData().Options[0].StringValue()
 
@@ -108,6 +108,8 @@ var (
 		utils.RegisterCourseName: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			guildId := i.GuildID
 			canvasSecret := i.ApplicationCommandData().Options[0].StringValue()
+			courseId := i.ApplicationCommandData().Options[1].StringValue()
+			authRoleId := i.ApplicationCommandData().Options[2].StringValue()
 
 			member, err := s.GuildMember(guildId, i.Member.User.ID)
 			if err != nil {
@@ -124,13 +126,12 @@ var (
 			}
 
 			{
-				err := utils.RegisterCourse(guildId, canvasSecret, i.ApplicationCommandData().Options[1].StringValue(), i.ApplicationCommandData().Options[2].StringValue())
+				err := utils.RegisterCourse(guildId, canvasSecret, courseId, authRoleId)
 				if err != nil {
 					return
 				}
 			}
 
-			// respond with ephemeral message
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{

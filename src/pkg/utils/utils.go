@@ -5,6 +5,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"io/ioutil"
 	"log"
+	"os"
 	"utk-auth-go/src/pkg/canvas"
 )
 
@@ -66,11 +67,18 @@ var (
 )
 
 func RegisterCourse(guildId string, canvasSecret string, courseId string, authRoleId string) error {
+	if _, err := os.Stat("data/server_config.json"); os.IsNotExist(err) {
+		_, err := os.Create("data/server_config.json")
+		if err != nil {
+			log.Println("Error creating server_config.json while registering course")
+			return err
+		}
+	}
+
 	// open /data/server_config.json and add a new course to the list
 	file, err := ioutil.ReadFile("data/server_config.json")
 	if err != nil {
 		log.Println("Error reading server_config.json while registering course")
-		return err
 	}
 	var serverConfig ServerConfig
 	err = json.Unmarshal(file, &serverConfig)

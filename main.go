@@ -116,6 +116,8 @@ var (
 				log.Println("Error getting member:", err)
 				return
 			}
+      
+      log.Println("Permission bitmap from requesting user:", member.Permissions)
 			if member.Permissions&discordgo.PermissionAdministrator == 0 {
 				log.Println("User does not have permission to register a course for this server")
 				return

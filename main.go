@@ -56,23 +56,37 @@ var (
 
 	// define command handlers
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+		// defer interaction timeout
 		auth.Name: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Embeds: []*discordgo.MessageEmbed{
+						{
+							Title:       "Authentication",
+							Description: "Attempting to authenticate...",
+							Color:       0xff4400,
+						},
+					},
+					Flags: discordgo.MessageFlagsEphemeral,
+				},
+			})
+
 			// check if guild exists before initiating authentication
 			if exists, err := utils.GuildIdExists(i.GuildID); err != nil {
 				return
 			} else if !exists {
 				log.Println("No course is registered for this server")
-				embed := &discordgo.MessageEmbed{
-					Title:       "Authentication",
-					Description: "No course is registered for this server.\nPlease use **/registercourse** to register a course.",
-					Color:       0xff4400,
-				}
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{embed},
-						Flags:  discordgo.MessageFlagsEphemeral,
-					},
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: utils.StrPtr(""),
+					Embeds: utils.NewEmbeds(
+						utils.NewEmbed(
+							"Authentication",
+							"No course is registered for this server.\nPlease use `/registercourse` to register a course.",
+							0xff4400,
+							nil,
+						),
+					),
 				})
 				return
 			}
@@ -84,18 +98,16 @@ var (
 				return
 			} else if !exists {
 				log.Println(netid, "is not enrolled in the course.")
-				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-					Type: discordgo.InteractionResponseChannelMessageWithSource,
-					Data: &discordgo.InteractionResponseData{
-						Embeds: []*discordgo.MessageEmbed{
-							{
-								Title:       "Authentication",
-								Description: "You are not enrolled in the course.",
-								Color:       0xff4400,
-							},
-						},
-						Flags: discordgo.MessageFlagsEphemeral,
-					},
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: utils.StrPtr(""),
+					Embeds: utils.NewEmbeds(
+						utils.NewEmbed(
+							"Authentication",
+							"You are not enrolled in the course.",
+							0xff4400,
+							nil,
+						),
+					),
 				})
 				return
 			}
@@ -112,35 +124,45 @@ var (
 			if err != nil {
 				log.Println("Something went wrong while sending the aunthentication email to NetID:", netid)
 				log.Print(err)
+
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: utils.StrPtr(""),
+					Embeds: utils.NewEmbeds(
+						utils.NewEmbed(
+							"Authentication",
+							"Something went wrong while sending the aunthentication email to NetID: "+netid,
+							0xff4400,
+							nil,
+						),
+					),
+				})
 			}
 
-			embed := &discordgo.MessageEmbed{
-				Title:       "Authentication",
-				Description: "An email has been sent to your NetID with a link to authenticate.",
-				Fields: []*discordgo.MessageEmbedField{
-					{
-						Name:   "Outlook",
-						Value:  "**Note**: If you're using Outlook, the email is likely in your **quarantine** folder",
-						Inline: false,
-					},
-					{
-						Name:   "Gmail",
-						Value:  "**Note**: If you're using Gmail, the email is likely in your **spam** folder",
-						Inline: false,
-					},
-				},
-				Color: 0xff4400,
-			}
-
-			// respond with ephemeral message
-			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-				Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Embeds: []*discordgo.MessageEmbed{embed},
-					Flags:  discordgo.MessageFlagsEphemeral,
-				},
+			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+				Content: utils.StrPtr(""),
+				Embeds: utils.NewEmbeds(
+					utils.NewEmbed(
+						"Authentication",
+						"An email has been sent to your NetID with a link to authenticate.",
+						0xff4400,
+						[]*discordgo.MessageEmbedField{
+							{
+								Name:   "Outlook",
+								Value:  "**Note**: If you're using Outlook, the email is likely in your **quarantine** folder",
+								Inline: false,
+							},
+							{
+								Name:   "Gmail",
+								Value:  "**Note**: If you're using Gmail, the email is likely in your **spam** folder",
+								Inline: false,
+							},
+						},
+					),
+				),
 			})
 		},
+
+		// register course command
 		utils.RegisterCourseName: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			// responding immedately to defer interaction timeout
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

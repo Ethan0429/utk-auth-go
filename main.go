@@ -8,6 +8,7 @@ import (
 	"os"
 	"utk-auth-go/src/pkg/auth"
 	"utk-auth-go/src/pkg/authserver"
+	"utk-auth-go/src/pkg/utils"
 )
 
 var session *discordgo.Session
@@ -37,11 +38,30 @@ func init() {
 var (
 	commands = []*discordgo.ApplicationCommand{
 		&auth.Command,
+		&utils.RegisterCourseCommand,
 	}
 
 	// define command handlers
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		auth.Name: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+      // check if guild exists before initiating authentication
+			if !utils.GuildIdExists(i.GuildID) {
+				log.Println("No course is registered for this server")
+
+				embed := &discordgo.MessageEmbed{
+					Title:       "Authentication",
+					Description: "No course is registered for this server.\nPlease use **/registercourse** to register a course.",
+					Color:       0xff4400,
+				}
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{embed},
+						Flags:  discordgo.MessageFlagsEphemeral,
+					},
+				})
+        return
+			}
 			netid := i.ApplicationCommandData().Options[0].StringValue()
 
 			// send authentication email
@@ -82,6 +102,40 @@ var (
 				Data: &discordgo.InteractionResponseData{
 					Embeds: []*discordgo.MessageEmbed{embed},
 					Flags:  discordgo.MessageFlagsEphemeral,
+				},
+			})
+		},
+		utils.RegisterCourseName: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			guildId := i.GuildID
+			canvasSecret := i.ApplicationCommandData().Options[0].StringValue()
+
+			member, err := s.GuildMember(guildId, i.Member.User.ID)
+			if err != nil {
+				log.Println("Error getting member:", err)
+				return
+			}
+			if member.Permissions&discordgo.PermissionAdministrator == 0 {
+				log.Println("User does not have permission to register a course for this server")
+				return
+			}
+			if utils.GuildIdExists(guildId) {
+				log.Println("GuildId already exists")
+				return
+			}
+
+			{
+				err := utils.RegisterCourse(guildId, canvasSecret, i.ApplicationCommandData().Options[1].StringValue(), i.ApplicationCommandData().Options[2].StringValue())
+				if err != nil {
+					return
+				}
+			}
+
+			// respond with ephemeral message
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Course registered successfully!",
+					Flags:   discordgo.MessageFlagsEphemeral,
 				},
 			})
 		},

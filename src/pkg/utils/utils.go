@@ -67,6 +67,7 @@ var (
 )
 
 func RegisterCourse(guildId string, canvasSecret string, courseId string, authRoleId string) error {
+  log.Println("Registering course for guildId:", guildId)
 	if _, err := os.Stat("data/server_config.json"); os.IsNotExist(err) {
 		_, err := os.Create("data/server_config.json")
 		if err != nil {

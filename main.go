@@ -76,7 +76,29 @@ var (
 				})
 				return
 			}
+
 			netid := i.ApplicationCommandData().Options[0].StringValue()
+
+			// check if student exists in canvas course
+			if exists, err := utils.StudentExists(netid, i.GuildID); err != nil {
+				return
+			} else if !exists {
+				log.Println(netid, "is not enrolled in the course.")
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Embeds: []*discordgo.MessageEmbed{
+							{
+								Title:       "Authentication",
+								Description: "You are not enrolled in the course.",
+								Color:       0xff4400,
+							},
+						},
+						Flags: discordgo.MessageFlagsEphemeral,
+					},
+				})
+				return
+			}
 
 			// send authentication email
 			preAuthUser := auth.NewPreAuthUser(i.Member.User.ID, i.GuildID, netid)

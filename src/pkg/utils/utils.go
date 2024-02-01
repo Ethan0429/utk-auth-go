@@ -12,6 +12,38 @@ type ServerConfig struct {
 	Courses []canvas.Course `json:"courses"`
 }
 
+func StudentExists(guildId string, netId string) (bool, error) {
+	// open /data/server_config.json and check if student exists in any courses
+	file, err := ioutil.ReadFile("/data/server_config.json")
+	if err != nil {
+		log.Println("Error reading server_config.json while checking for student:", err)
+		return false, err
+	}
+
+	if len(file) == 0 {
+		return false, nil
+	}
+
+	var serverConfig ServerConfig
+	err = json.Unmarshal(file, &serverConfig)
+	if err != nil {
+		log.Println("Error unmarshalling server_config.json while checking for student:", err)
+		return false, err
+	}
+
+	for _, course := range serverConfig.Courses {
+		if course.GuildId == guildId {
+			for _, student := range course.Students {
+				if student.NetId == netId {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	return false, nil
+}
+
 func GuildIdExists(guildId string) (bool, error) {
 	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {

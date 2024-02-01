@@ -12,6 +12,24 @@ type ServerConfig struct {
 	Courses []canvas.Course `json:"courses"`
 }
 
+// helper functions
+func StrPtr(s string) *string {
+	return &s
+}
+
+func NewEmbed(title string, description string, color int, fields []*discordgo.MessageEmbedField) *discordgo.MessageEmbed {
+	return &discordgo.MessageEmbed{
+		Title:       title,
+		Description: description,
+		Color:       color,
+		Fields:      fields,
+	}
+}
+
+func NewEmbeds(embeds ...*discordgo.MessageEmbed) *[]*discordgo.MessageEmbed {
+	return &embeds
+}
+
 func StudentExists(guildId string, netId string) (bool, error) {
 	// open /data/server_config.json and check if student exists in any courses
 	file, err := ioutil.ReadFile("/data/server_config.json")
@@ -44,7 +62,7 @@ func StudentExists(guildId string, netId string) (bool, error) {
 			log.Println("No courses found for guildId:", guildId)
 		}
 	}
-  
+
 	return false, nil
 }
 

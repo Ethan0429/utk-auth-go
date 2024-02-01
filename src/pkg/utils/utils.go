@@ -13,16 +13,19 @@ type ServerConfig struct {
 	Courses []canvas.Course `json:"courses"`
 }
 
-func GuildIdExists(guildId string) (bool, error){
+func GuildIdExists(guildId string) (bool, error) {
 	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {
-    log.Println("Error reading server_config.json while checking for guildId:", err)
+		log.Println("Error reading server_config.json while checking for guildId:", err)
 		return false, err
+	}
+	if len(file) == 0 {
+		return false, nil
 	}
 	var serverConfig ServerConfig
 	err = json.Unmarshal(file, &serverConfig)
 	if err != nil {
-    log.Println("Error unmarshalling server_config.json while checking for guildId:", err)
+		log.Println("Error unmarshalling server_config.json while checking for guildId:", err)
 		return false, err
 	}
 	for _, course := range serverConfig.Courses {
@@ -67,7 +70,7 @@ var (
 )
 
 func RegisterCourse(guildId string, canvasSecret string, courseId string, authRoleId string) error {
-  log.Println("Registering course for guildId:", guildId)
+	log.Println("Registering course for guildId:", guildId)
 	if _, err := os.Stat("/data/server_config.json"); os.IsNotExist(err) {
 		_, err := os.Create("/data/server_config.json")
 		if err != nil {
@@ -79,14 +82,22 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 	// open /data/server_config.json and add a new course to the list
 	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {
-    log.Println("Error reading server_config.json while registering course:", err)
-    return err
+		log.Println("Error reading server_config.json while registering course:", err)
+		return err
 	}
 	var serverConfig ServerConfig
-	err = json.Unmarshal(file, &serverConfig)
-	if err != nil {
-    log.Println("Error unmarshalling server_config.json while registering course:", err)
-		return err
+
+	if len(file) != 0 {
+		err = json.Unmarshal(file, &serverConfig)
+		if err != nil {
+			log.Println("Error unmarshalling server_config.json while registering course:", err)
+			return err
+		}
+	} else {
+		// populate server config with empty courses
+		serverConfig = ServerConfig{
+			Courses: []canvas.Course{},
+		}
 	}
 
 	students, err := canvas.GetCourseStudents(guildId, canvasSecret)

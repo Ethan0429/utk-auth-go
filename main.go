@@ -61,7 +61,19 @@ var (
 			embed := &discordgo.MessageEmbed{
 				Title:       "Authentication",
 				Description: "An email has been sent to your NetID with a link to authenticate.",
-				Color:       0x00ff00,
+				Fields: []*discordgo.MessageEmbedField{
+					{
+						Name:   "Outlook",
+						Value:  "**Note**: If you're using Outlook, the email is likely in your **quarantine** folder",
+						Inline: false,
+					},
+					{
+						Name:   "Gmail",
+						Value:  "**Note**: If you're using Gmail, the email is likely in your **spam** folder",
+						Inline: false,
+					},
+				},
+				Color: 0xff4400,
 			}
 
 			// respond with ephemeral message

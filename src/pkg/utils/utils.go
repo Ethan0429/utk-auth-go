@@ -21,6 +21,7 @@ func StudentExists(guildId string, netId string) (bool, error) {
 	}
 
 	if len(file) == 0 {
+		log.Println("server_config.json is empty")
 		return false, nil
 	}
 
@@ -38,9 +39,12 @@ func StudentExists(guildId string, netId string) (bool, error) {
 					return true, nil
 				}
 			}
+			log.Println("No Student found for guildId:", guildId)
+		} else {
+			log.Println("No courses found for guildId:", guildId)
 		}
 	}
-
+  
 	return false, nil
 }
 

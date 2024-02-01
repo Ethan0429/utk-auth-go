@@ -111,18 +111,19 @@ var (
 			courseId := i.ApplicationCommandData().Options[1].StringValue()
 			authRoleId := i.ApplicationCommandData().Options[2].StringValue()
 
-			memberRoles := i.Member.Roles
-			isAdmin := false
-			for _, role := range memberRoles {
-				if role == "admin" {
-					isAdmin = true
-				}
-			}
+			// memberRoles := i.Member.Roles
+			// isAdmin := false
+			// for _, role := range memberRoles {
+			// 	if role == "admin" {
+			// 		isAdmin = true
+			// 	}
+			// }
 
-			if !isAdmin {
-				log.Println("User does not have permission to register a course for this server")
-				return
-			}
+			// if !isAdmin {
+			// 	log.Println("User does not have permission to register a course for this server")
+			// 	return
+			// }
+
 			if utils.GuildIdExists(guildId) {
 				log.Println("GuildId already exists")
 				return

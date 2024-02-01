@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+  "log"
 )
 
 type Student struct {
@@ -33,6 +34,7 @@ func GetCourseStudents(courseId string, canvasSecret string) ([]Student, error) 
 	url := fmt.Sprintf("https://canvas.instructure.com/api/v1/courses/%s/enrollments?type=StudentEnrollment&per_page=230", courseId)
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+    log.Println("Error generating Canvas API request for GetCourseStudents:", err)
 		return nil, err
 	}
 
@@ -41,18 +43,21 @@ func GetCourseStudents(courseId string, canvasSecret string) ([]Student, error) 
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
+    log.Println("Error sending request to Canvas API while getting course students:", err)
 		return nil, err
 	}
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
+    log.Println("Error reading response from Canvas API while getting course students:", err)
 		return nil, err
 	}
 
 	var enrollments []Enrollment
 	err = json.Unmarshal(body, &enrollments)
 	if err != nil {
+    log.Println("Error unmarshalling response from Canvas API while getting course students:", err)
 		return nil, err
 	}
 

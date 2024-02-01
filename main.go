@@ -80,7 +80,7 @@ var (
 			netid := i.ApplicationCommandData().Options[0].StringValue()
 
 			// check if student exists in canvas course
-			if exists, err := utils.StudentExists(netid, i.GuildID); err != nil {
+			if exists, err := utils.StudentExists(i.GuildID, netid); err != nil {
 				return
 			} else if !exists {
 				log.Println(netid, "is not enrolled in the course.")

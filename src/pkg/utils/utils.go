@@ -5,7 +5,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"io/ioutil"
 	"log"
-	"os"
 	"utk-auth-go/src/pkg/canvas"
 )
 

@@ -136,10 +136,12 @@ var (
 				existsString  = "Course already registered for this server."
 			)
 
-			guildId := i.GuildID
-			canvasSecret := i.ApplicationCommandData().Options[0].StringValue()
-			courseId := i.ApplicationCommandData().Options[1].StringValue()
-			authRoleId := i.ApplicationCommandData().Options[2].StringValue()
+			var (
+				guildId      = i.GuildID
+				canvasSecret = i.ApplicationCommandData().Options[0].StringValue()
+				courseId     = i.ApplicationCommandData().Options[1].StringValue()
+				authRoleId   = i.ApplicationCommandData().Options[2].StringValue()
+			)
 
 			// memberRoles := i.Member.Roles
 			// isAdmin := false

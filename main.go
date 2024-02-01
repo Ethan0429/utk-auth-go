@@ -110,13 +110,16 @@ var (
 			canvasSecret := i.ApplicationCommandData().Options[0].StringValue()
 			courseId := i.ApplicationCommandData().Options[1].StringValue()
 			authRoleId := i.ApplicationCommandData().Options[2].StringValue()
- 
-      perms, err := s.State.UserChannelPermissions(i.Member.User.ID, i.ChannelID)
-      if err != nil {
-        log.Println("Error getting member permissions:", err)
-        return
-      }
-			if perms&discordgo.PermissionAdministrator == 0 {
+
+			memberRoles := i.Member.Roles
+			isAdmin := false
+			for _, role := range memberRoles {
+				if role == "admin" {
+					isAdmin = true
+				}
+			}
+
+			if !isAdmin {
 				log.Println("User does not have permission to register a course for this server")
 				return
 			}

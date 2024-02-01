@@ -18,6 +18,14 @@ func StrPtr(s string) *string {
 }
 
 func NewEmbed(title string, description string, color int, fields []*discordgo.MessageEmbedField) *discordgo.MessageEmbed {
+	if fields == nil {
+
+		return &discordgo.MessageEmbed{
+			Title:       title,
+			Description: description,
+			Color:       color,
+		}
+	}
 	return &discordgo.MessageEmbed{
 		Title:       title,
 		Description: description,

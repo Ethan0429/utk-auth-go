@@ -110,15 +110,13 @@ var (
 			canvasSecret := i.ApplicationCommandData().Options[0].StringValue()
 			courseId := i.ApplicationCommandData().Options[1].StringValue()
 			authRoleId := i.ApplicationCommandData().Options[2].StringValue()
-
-			member, err := s.GuildMember(guildId, i.Member.User.ID)
-			if err != nil {
-				log.Println("Error getting member:", err)
-				return
-			}
-      
-      log.Println("Permission bitmap from requesting user:", member.Permissions)
-			if member.Permissions&discordgo.PermissionAdministrator == 0 {
+ 
+      perms, err := s.State.UserChannelPermissions(i.Member.User.ID, i.ChannelID)
+      if err != nil {
+        log.Println("Error getting member permissions:", err)
+        return
+      }
+			if perms&discordgo.PermissionAdministrator == 0 {
 				log.Println("User does not have permission to register a course for this server")
 				return
 			}

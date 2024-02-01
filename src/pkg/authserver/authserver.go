@@ -135,6 +135,11 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 // Handler for verifying user token
 func VerifyHandler(w http.ResponseWriter, r *http.Request) {
+  if r.Method != "POST" {
+    http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+    log.Println("POST method required to verify")
+    return
+  }
 	userDiscordID := r.URL.Query().Get("user-discord-id")
 	token := r.URL.Query().Get("token")
 

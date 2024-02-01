@@ -63,10 +63,13 @@ var (
 				Description: "An email has been sent to your NetID with a link to authenticate.",
 				Color:       0x00ff00,
 			}
+
+			// respond with ephemeral message
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
 					Embeds: []*discordgo.MessageEmbed{embed},
+					Flags:  discordgo.MessageFlagsEphemeral,
 				},
 			})
 		},

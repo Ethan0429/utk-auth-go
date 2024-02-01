@@ -15,7 +15,7 @@ var session *discordgo.Session
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env file")
 	}
 }
 
@@ -101,7 +101,7 @@ func main() {
 	defer session.Close()
 
 	go func() {
-    authserver.StartServer(session)
+		authserver.StartServer(session)
 	}()
 	fmt.Println("Bot is now running. Press CTRL+C to exit.")
 

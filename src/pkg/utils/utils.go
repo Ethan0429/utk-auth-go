@@ -13,24 +13,24 @@ type ServerConfig struct {
 	Courses []canvas.Course `json:"courses"`
 }
 
-func GuildIdExists(guildId string) bool {
+func GuildIdExists(guildId string) (bool, error){
 	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {
-		log.Println("Error reading server_config.json while checking for guildId")
-		return false
+    log.Println("Error reading server_config.json while checking for guildId:", err)
+		return false, err
 	}
 	var serverConfig ServerConfig
 	err = json.Unmarshal(file, &serverConfig)
 	if err != nil {
-		log.Println("Error unmarshalling server_config.json while checking for guildId")
-		return false
+    log.Println("Error unmarshalling server_config.json while checking for guildId:", err)
+		return false, err
 	}
 	for _, course := range serverConfig.Courses {
 		if course.GuildId == guildId {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 var (
@@ -79,12 +79,13 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 	// open /data/server_config.json and add a new course to the list
 	file, err := ioutil.ReadFile("/data/server_config.json")
 	if err != nil {
-		log.Println("Error reading server_config.json while registering course")
+    log.Println("Error reading server_config.json while registering course:", err)
+    return err
 	}
 	var serverConfig ServerConfig
 	err = json.Unmarshal(file, &serverConfig)
 	if err != nil {
-		log.Println("Error unmarshalling server_config.json while registering course")
+    log.Println("Error unmarshalling server_config.json while registering course:", err)
 		return err
 	}
 

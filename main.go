@@ -45,9 +45,10 @@ var (
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		auth.Name: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			// check if guild exists before initiating authentication
-			if !utils.GuildIdExists(i.GuildID) {
-				log.Println("No course is registered for this server")
-
+			if exists, err := utils.GuildIdExists(i.GuildID); err != nil {
+				return
+			} else if !exists {
+        log.Println("No course is registered for this server")
 				embed := &discordgo.MessageEmbed{
 					Title:       "Authentication",
 					Description: "No course is registered for this server.\nPlease use **/registercourse** to register a course.",
@@ -124,8 +125,10 @@ var (
 			// 	return
 			// }
 
-			if utils.GuildIdExists(guildId) {
-				log.Println("GuildId already exists")
+			if exists, err := utils.GuildIdExists(guildId); err != nil {
+				return
+			} else if exists {
+				log.Println("Course already registered for this server")
 				return
 			}
 

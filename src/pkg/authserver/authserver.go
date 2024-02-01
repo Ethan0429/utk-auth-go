@@ -62,7 +62,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	// check if id already exists
 	{
-		file, err := ioutil.ReadFile("tokens.json")
+		file, err := ioutil.ReadFile("/data/tokens.json")
 		if err != nil {
 			if !os.IsNotExist(err) {
 				http.Error(w, "tokens.json does not exist", http.StatusInternalServerError)
@@ -88,7 +88,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the existing tokens
-	file, err := ioutil.ReadFile("tokens.json")
+	file, err := ioutil.ReadFile("/data/tokens.json")
 	if err != nil {
 		if !os.IsNotExist(err) {
 			http.Error(w, "Error reading file", http.StatusInternalServerError)
@@ -114,7 +114,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ioutil.WriteFile("tokens.json", updatedData, 0644)
+	err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
 	if err != nil {
 		http.Error(w, "Error writing to file", http.StatusInternalServerError)
 		return
@@ -135,7 +135,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := ioutil.ReadFile("tokens.json")
+	file, err := ioutil.ReadFile("/data/tokens.json")
 	if err != nil {
 		http.Error(w, "Error reading file", http.StatusInternalServerError)
 		return
@@ -153,25 +153,27 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, "Verification successful")
 
 			// add role to user
-			log.Printf("Adding role for -"+
-        "   User ID: %s\n"+
-        "   Guild ID: %s\n"+
-        "   Role ID: %s\n",
-        userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
+			log.Printf("Adding role for -\n"+
+				"   User ID: %s\n"+
+				"   Guild ID: %s\n"+
+				"   Role ID: %s\n",
+				userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
 
 			err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
 			if err != nil {
 				log.Println("Error adding roll to user:", err)
 			}
+      log.Println("Role added successfully")
 
 			// remove key from map
 			delete(tokens, userDiscordID)
+
 			// Write the updated tokens back to the file
 			updatedData, err := json.Marshal(tokens)
 			if err != nil {
 				http.Error(w, "Error marshalling JSON", http.StatusInternalServerError)
 			}
-			err = ioutil.WriteFile("tokens.json", updatedData, 0644)
+			err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
 			if err != nil {
 				http.Error(w, "Error writing to file", http.StatusInternalServerError)
 			}

@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/smtp"
 	"os"
-  "io/ioutil"
+	"utk-auth-go/src/pkg/authserver"
 )
 
 func init() {
@@ -59,16 +60,16 @@ type AuthService struct {
 
 // PreAuthUser holds the data for a user before they are authenticated
 type PreAuthUser struct {
-	DiscordUserId   string
-	DiscordGuildId  string
-	NetId           string
+	DiscordUserId  string
+	DiscordGuildId string
+	NetId          string
 }
 
 func NewPreAuthUser(discordUserId string, discordGuildId, netId string) *PreAuthUser {
 	preAuthUser := PreAuthUser{
-		DiscordUserId:   discordUserId,
-		DiscordGuildId:  discordGuildId,
-		NetId:           netId,
+		DiscordUserId:  discordUserId,
+		DiscordGuildId: discordGuildId,
+		NetId:          netId,
 	}
 	PreAuthUsers[discordUserId] = &preAuthUser
 	return &preAuthUser
@@ -90,36 +91,46 @@ func RequestAuthUrl(preAuthUser *PreAuthUser) string {
 	authServerUrl := os.Getenv("AUTH_SERVER_URL")
 
 	// send request to endpoint /generate-user-token
-  log.Println("Generating HTTP request")
+	log.Println("Generating HTTP request")
 	requestString := fmt.Sprintf("/generate-user-token?user-discord-id=%s&guild-discord-id=%s", preAuthUser.DiscordUserId, preAuthUser.DiscordGuildId)
 	req, err := http.NewRequest("POST", authServerUrl+requestString, nil)
 	if err != nil {
 		log.Println(err)
 	}
- 
-  log.Println("Setting request headers")
+
+	log.Println("Setting request headers")
 	req.Header.Set("X-Custom-Auth", os.Getenv("SHARED_SECRET"))
 	req.Header.Set("Content-Type", "application/json")
-  
-  log.Println("Sending request to authentication server")
+
+	log.Println("Sending request to authentication server")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		return "[Something went wrong while sending the request to the authentication server. Try again.]"
 	}
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var result map[string]interface{}
-	err = json.Unmarshal(body, &result)
+	var response authserver.ApiResponse
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		log.Fatal(err)
 	}
-	token := result["token"].(string)
+
+	dataMap, ok := response.Data.(map[string]interface{})
+	if !ok {
+		log.Fatal("Data is not the expected type")
+	}
+
+	// Access the token within the map
+	token, ok := dataMap["token"].(string)
+	if !ok {
+		log.Fatal("Token is not a string or not present")
+	}
+
 	return fmt.Sprintf("%s/verify?user-discord-id=%s&token=%s", authServerUrl, preAuthUser.DiscordUserId, token)
 }
 

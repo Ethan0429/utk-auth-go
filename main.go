@@ -8,6 +8,7 @@ import (
 	"os"
 	"utk-auth-go/src/pkg/auth"
 	"utk-auth-go/src/pkg/authserver"
+	"utk-auth-go/src/pkg/registercourse"
 	"utk-auth-go/src/pkg/utils"
 )
 
@@ -50,14 +51,14 @@ func init() {
 // initialize bot commands
 var (
 	commands = []*discordgo.ApplicationCommand{
-		&auth.Command,
-		&utils.RegisterCourseCommand,
+		&auth.AuthCommand,
+		&registercourse.RegisterCourseCommand,
 	}
 
 	// define command handlers
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		// defer interaction timeout
-		auth.Name: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"auth": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
@@ -73,9 +74,7 @@ var (
 			})
 
 			// check if guild exists before initiating authentication
-			if exists, err := utils.GuildIdExists(i.GuildID); err != nil {
-				return
-			} else if !exists {
+			if exists := utils.GuildIDExists(i.GuildID); !exists {
 				log.Println("No course is registered for this server")
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: utils.StrPtr(""),
@@ -91,79 +90,23 @@ var (
 				return
 			}
 
-			netid := i.ApplicationCommandData().Options[0].StringValue()
-
-			// check if student exists in canvas course
-			if exists, err := utils.StudentExists(i.GuildID, netid); err != nil {
-				return
-			} else if !exists {
-				log.Println(netid, "is not enrolled in the course.")
-				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-					Content: utils.StrPtr(""),
-					Embeds: utils.NewEmbeds(
-						utils.NewEmbed(
-							"Authentication",
-							"You are not enrolled in the course.",
-							0xff4400,
-							nil,
-						),
-					),
-				})
-				return
-			}
-
-			// send authentication email
-			preAuthUser := auth.NewPreAuthUser(i.Member.User.ID, i.GuildID, netid)
-			authService := auth.NewAuthService()
-
-			log.Println("Generating authentication URL for NetID:", netid)
-			authUrl := auth.RequestAuthUrl(preAuthUser)
-
-			log.Println("Sending authentication email to NetID:", netid)
-			err := authService.SendAuthEmail(netid, preAuthUser, authUrl)
-			if err != nil {
-				log.Println("Something went wrong while sending the aunthentication email to NetID:", netid)
-				log.Print(err)
-
-				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-					Content: utils.StrPtr(""),
-					Embeds: utils.NewEmbeds(
-						utils.NewEmbed(
-							"Authentication",
-							"Something went wrong while sending the aunthentication email to NetID: "+netid,
-							0xff4400,
-							nil,
-						),
-					),
-				})
-			}
-
+			authURL := "utk-auth-go-production.up.railway.app/canvas-login?guild_id=" + i.GuildID + "&discord_user_id=" + i.Member.User.ID
+			// edit embed with OAuth URL
 			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content: utils.StrPtr(""),
 				Embeds: utils.NewEmbeds(
 					utils.NewEmbed(
 						"Authentication",
-						"An email has been sent to your NetID with a link to authenticate.",
+						"Click [this link]"+"("+authURL+") to authenticate with your NetID.",
 						0xff4400,
-						[]*discordgo.MessageEmbedField{
-							{
-								Name:   "Outlook",
-								Value:  "**Note**: If you're using Outlook, the email is likely in your **quarantine** folder",
-								Inline: false,
-							},
-							{
-								Name:   "Gmail",
-								Value:  "**Note**: If you're using Gmail, the email is likely in your **spam** folder",
-								Inline: false,
-							},
-						},
+						nil,
 					),
 				),
 			})
 		},
 
 		// register course command
-		utils.RegisterCourseName: func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"registercourse": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			// responding immedately to defer interaction timeout
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -181,10 +124,9 @@ var (
 			)
 
 			var (
-				guildId      = i.GuildID
-				canvasSecret = i.ApplicationCommandData().Options[0].StringValue()
-				courseId     = i.ApplicationCommandData().Options[1].StringValue()
-				authRoleId   = i.ApplicationCommandData().Options[2].StringValue()
+				guildId    = i.GuildID
+				courseId   = i.ApplicationCommandData().Options[1].StringValue()
+				authRoleId = i.ApplicationCommandData().Options[2].StringValue()
 			)
 
 			// memberRoles := i.Member.Roles
@@ -200,9 +142,7 @@ var (
 			// 	return
 			// }
 
-			if exists, err := utils.GuildIdExists(guildId); err != nil {
-				return
-			} else if exists {
+			if exists := utils.GuildIDExists(guildId); exists {
 				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 					Content: &existsString,
 				})
@@ -210,20 +150,17 @@ var (
 				return
 			}
 
-			{
-				err := utils.RegisterCourse(guildId, canvasSecret, courseId, authRoleId)
-				if err != nil {
-					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-						Content: &failString,
-					})
-					return
-				}
+			err := registercourse.RegisterCourse(guildId, courseId, authRoleId)
+			if err != nil {
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: &failString,
+				})
+				return
 			}
 
 			s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 				Content: &successString,
 			})
-
 		},
 	}
 )

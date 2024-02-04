@@ -1,8 +1,6 @@
 package authserver
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
@@ -10,12 +8,19 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
+	"utk-auth-go/src/pkg/auth"
+	"utk-auth-go/src/pkg/canvas"
+	"utk-auth-go/src/pkg/common"
+	"utk-auth-go/src/pkg/utils"
 )
 
-var mutex sync.Mutex
-var session *discordgo.Session
+var (
+	mutex   sync.Mutex
+	session *discordgo.Session
+)
 
 type ApiResponse struct {
 	Success bool        `json:"success"`
@@ -31,199 +36,154 @@ func init() {
 	}
 }
 
-// TokenData holds the token and guild ID
-type TokenData struct {
-	Token   string `json:"token"`
-	GuildID string `json:"guild_id"`
-}
-
 type TokenResponse struct {
 	Token string `json:"token"`
 }
 
-// Generate a random token of 25 characters
-func generateToken() (string, error) {
-	bytes := make([]byte, 25)
-	if _, err := rand.Read(bytes); err != nil {
+func startCanvasOAuthHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		canvasClientID = common.CanvasClientID
+		authServerUrl  = common.AuthServerUrl
+	)
+
+	// get guild-id from query params
+	guildID := r.URL.Query().Get("guild_id")
+	if guildID == "" {
+		http.Error(w, "Guild ID not found", http.StatusBadRequest)
+	}
+
+	discordUserID := r.URL.Query().Get("discord_user_id")
+	if discordUserID == "" {
+		http.Error(w, "Discord user ID not found", http.StatusBadRequest)
+	}
+
+	// Define the Canvas OAuth URL with necessary parameters
+	canvasOAuthURL := getCanvasAuthURL(canvasClientID, authServerUrl+"/canvas-callback?guild_id="+guildID+"&discord_user_id="+discordUserID, "1")
+
+	// Redirect the user to Canvas OAuth URL
+	http.Redirect(w, r, canvasOAuthURL, http.StatusFound)
+}
+
+func getCanvasAuthURL(clientID, redirectURI, state string) string {
+	return fmt.Sprintf(common.CanvasInstallUrl+"/login/oauth2/auth?client_id=%s&response_type=code&redirect_uri=%s&state=%s",
+		url.QueryEscape(clientID),
+		url.QueryEscape(redirectURI),
+		url.QueryEscape(state))
+}
+
+func canvasCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		http.Error(w, "Code not found", http.StatusBadRequest)
+		return
+	}
+
+	guildID := r.URL.Query().Get("guild_id")
+	if guildID == "" {
+		http.Error(w, "Guild ID not found", http.StatusBadRequest)
+		return
+	}
+
+	discordUserID := r.URL.Query().Get("discord_user_id")
+	if discordUserID == "" {
+		http.Error(w, "Discord user ID not found", http.StatusBadRequest)
+		return
+	}
+
+	var (
+		canvasClientId     = common.CanvasClientID
+		canvasClientSecret = common.CanvasClientSecret
+		authServerUrl      = common.AuthServerUrl
+	)
+
+	// Exchange the code for a Canvas access token
+	canvasAccessToken, err := exchangeCanvasCodeForAccessToken(code, canvasClientId, canvasClientSecret, authServerUrl+"/canvas-callback")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	enrollments := canvas.GetUserEnrollments(canvasAccessToken)
+	isEnrolled, err := auth.IsEnrolled(enrollments, guildID)
+	if err != nil {
+		http.Error(w, "Error checking enrollment", http.StatusInternalServerError)
+		return
+	}
+	if !isEnrolled {
+		http.Error(w, "You are not enrolled in this course", http.StatusUnauthorized)
+		return
+	}
+
+	mutex.Lock()
+	authRoleID, err := utils.GetAuthRoleID(guildID)
+	if err != nil {
+		http.Error(w, "Error getting role ID", http.StatusInternalServerError)
+		return
+	}
+	mutex.Unlock()
+
+	if authRoleID == "" {
+		http.Error(w, "No role is registered for this server", http.StatusNotFound)
+		return
+	}
+
+	// grant auth role to user
+	err = session.GuildMemberRoleAdd(guildID, discordUserID, authRoleID)
+	if err != nil {
+		log.Println("Error adding role to user:", err)
+	}
+
+	// get name from user in enrollment data
+	name := enrollments[0].User.Name
+
+	// change user nickname
+	err = session.GuildMemberNickname(guildID, discordUserID, name)
+	if err != nil {
+		log.Println("Error changing user nickname:", err)
+	}
+}
+
+func exchangeCanvasCodeForAccessToken(code, clientID, clientSecret, redirectURI string) (string, error) {
+	req, err := http.NewRequest("POST", "https://canvas.instructure.com/api/v1/login/oauth2/token", nil)
+	if err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(bytes)[:25], nil
-}
 
-// Handler for generating user token
-func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
-	sharedSecret := os.Getenv("SHARED_SECRET")
+	q := req.URL.Query()
+	q.Add("grant_type", "authorization_code")
+	q.Add("client_id", clientID)
+	q.Add("client_secret", clientSecret)
+	q.Add("redirect_uri", redirectURI)
+	q.Add("code", code)
+	req.URL.RawQuery = q.Encode()
 
-	authHeader := r.Header.Get("X-Custom-Auth")
-	if authHeader != sharedSecret {
-		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Unauthorized"})
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	userDiscordID := r.URL.Query().Get("user-discord-id")
-	guildDiscordID := r.URL.Query().Get("guild-discord-id")
-
-	if userDiscordID == "" || guildDiscordID == "" {
-		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Missing parameters"})
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	// check if id already exists
-	{
-		mutex.Lock()
-		file, err := ioutil.ReadFile("/data/tokens.json")
-		if err != nil {
-			if !os.IsNotExist(err) {
-				http.Error(w, "tokens.json does not exist", http.StatusInternalServerError)
-			}
-		} else {
-			var tokens map[string]TokenData
-			err = json.Unmarshal(file, &tokens)
-			if err != nil {
-				http.Error(w, "Error parsing file", http.StatusInternalServerError)
-			}
-
-			if _, ok := tokens[userDiscordID]; ok {
-				http.Error(w, "User already has a token", http.StatusConflict)
-				return
-			}
-		}
-		mutex.Unlock()
-	}
-
-	token, err := generateToken()
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
-		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Error generating token"})
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return "", err
 	}
+	defer resp.Body.Close()
 
-	// Read the existing tokens
-	mutex.Lock()
-	file, err := ioutil.ReadFile("/data/tokens.json")
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		if !os.IsNotExist(err) {
-			http.Error(w, "Error reading file", http.StatusInternalServerError)
-			return
-		}
-		file = []byte("{}") // If the file does not exist, start with an empty JSON object
+		return "", err
 	}
 
-	var tokens map[string]TokenData
-	err = json.Unmarshal(file, &tokens)
+	var data map[string]interface{}
+
+	err = json.Unmarshal(body, &data)
 	if err != nil {
-		http.Error(w, "Error parsing file", http.StatusInternalServerError)
-		return
-	}
-	mutex.Unlock()
-
-	// Add or update the token for the user
-	tokens[userDiscordID] = TokenData{Token: token, GuildID: guildDiscordID}
-
-	// Write the updated tokens back to the file
-	updatedData, err := json.Marshal(tokens)
-	if err != nil {
-		http.Error(w, "Error marshalling JSON", http.StatusInternalServerError)
-		return
+		return "", err
 	}
 
-	mutex.Lock()
-	err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
-	if err != nil {
-		http.Error(w, "Error writing to file", http.StatusInternalServerError)
-		return
-	}
-	mutex.Unlock()
-
-	response := ApiResponse{Success: true, Message: "Token generated successfully", Data: TokenResponse{Token: token}}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// Handler for verifying user token
-func VerifyHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Method not allowed"})
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	userDiscordID := r.URL.Query().Get("user-discord-id")
-	token := r.URL.Query().Get("token")
-
-	if userDiscordID == "" || token == "" {
-		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Missing parameters"})
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	mutex.Lock()
-	file, err := ioutil.ReadFile("/data/tokens.json")
-	if err != nil {
-		http.Error(w, "Error reading file", http.StatusInternalServerError)
-		return
-	}
-
-	var tokens map[string]TokenData
-	err = json.Unmarshal(file, &tokens)
-	if err != nil {
-		http.Error(w, "Error parsing file", http.StatusInternalServerError)
-		return
-	}
-	mutex.Unlock()
-
-	if tokenData, ok := tokens[userDiscordID]; ok {
-		if tokenData.Token == token {
-			log.Println("Verification successful")
-			json.NewEncoder(w).Encode(ApiResponse{Success: true, Message: "Verification successful"})
-
-			// add role to user
-			log.Printf("Adding role for -\n"+
-				"   User ID: %s\n"+
-				"   Guild ID: %s\n"+
-				"   Role ID: %s\n",
-				userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
-
-			mutex.Lock()
-			err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
-			if err != nil {
-				log.Println("Error adding roll to user:", err)
-			}
-			log.Println("Role added successfully")
-			mutex.Unlock()
-
-			// remove key from map
-			delete(tokens, userDiscordID)
-
-			// Write the updated tokens back to the file
-			updatedData, err := json.Marshal(tokens)
-			if err != nil {
-				http.Error(w, "Error marshalling JSON", http.StatusInternalServerError)
-			}
-
-			mutex.Lock()
-			err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
-			mutex.Unlock()
-
-			if err != nil {
-				http.Error(w, "Error writing to file", http.StatusInternalServerError)
-			}
-		} else {
-			json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Invalid token"})
-			w.WriteHeader(http.StatusUnauthorized)
-		}
-	} else {
-		http.Error(w, "User not found", http.StatusNotFound)
-	}
+	return data["access_token"].(string), nil
 }
 
 func StartServer(sessionPass *discordgo.Session) {
 	session = sessionPass
 	port := os.Getenv("PORT")
-	http.HandleFunc("/generate-user-token", GenerateUserTokenHandler)
-	http.HandleFunc("/verify", VerifyHandler)
+	http.HandleFunc("/canvas-login", startCanvasOAuthHandler)
+	http.HandleFunc("/canvas-callback", canvasCallbackHandler)
 
 	fmt.Println("Server is running on port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {

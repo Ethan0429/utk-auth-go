@@ -18,21 +18,12 @@ func init() {
 
 // Discord command metadata
 var (
-	// invoked by "/auth [netid]"
+	// invoked by "/auth" 
 	AuthCommand = discordgo.ApplicationCommand{
 		Name:        "auth",
 		Description: "Authenticate with your NetID as a student",
 
 		Type: discordgo.ChatApplicationCommand,
-		// single argument for the user's NetID
-		Options: []*discordgo.ApplicationCommandOption{
-			{
-				Type:        discordgo.ApplicationCommandOptionString,
-				Name:        "netid",
-				Description: "Your NetID",
-				Required:    true,
-			},
-		},
 	}
 )
 

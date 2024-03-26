@@ -143,14 +143,50 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 // Handler for verifying user token
 func VerifyHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Method not allowed"})
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	userDiscordID := r.URL.Query().Get("user-discord-id")
+	token := r.URL.Query().Get("token")
+
+	if userDiscordID == "" || token == "" {
+		http.Error(w, "Missing parameters", http.StatusBadRequest)
 		return
 	}
 
-	userDiscordID := r.URL.Query().Get("user-discord-id")
-	token := r.URL.Query().Get("token")
+	// Serve the HTML page on a GET request
+	if r.Method == "GET" {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		htmlContent := fmt.Sprintf(`
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<title>Verify Email</title>
+			</head>
+			<body>
+				<h2>Email Verification</h2>
+				<p>Click the button below to verify your email.</p>
+				<form action="" method="POST">
+					<input type="hidden" name="user-discord-id" value="%s">
+					<input type="hidden" name="token" value="%s">
+					<button type="submit">Verify Email</button>
+				</form>
+			</body>
+			</html>
+		`, userDiscordID, token)
+		w.Write([]byte(htmlContent))
+		return
+	}
+
+	// From here on, handle POST requests
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Method not allowed"})
+		return
+	}
+
+	// Handling POST request: Your existing logic with minor adjustments
+	// Now using `FormValue` to get data, as it is sent via form submission
+	userDiscordID = r.FormValue("user-discord-id")
+	token = r.FormValue("token")
 
 	if userDiscordID == "" || token == "" {
 		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Missing parameters"})

@@ -3,7 +3,7 @@ package canvas
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -62,7 +62,7 @@ func GetCourseStudents(courseId string, canvasSecret string) ([]Student, error) 
 		}
 		defer response.Body.Close()
 
-		body, err := ioutil.ReadAll(response.Body)
+		body, err := io.ReadAll(response.Body)
 		if err != nil {
 			log.Println("Error reading response from Canvas API while getting course students:", err)
 			return nil, err

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"utk-auth-go/src/pkg/auth"
 	"utk-auth-go/src/pkg/authserver"
 	"utk-auth-go/src/pkg/utils"

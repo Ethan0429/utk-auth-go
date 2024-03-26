@@ -5,13 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
 )
 
 var mutex sync.Mutex
@@ -73,6 +74,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	// check if id already exists
 	{
 		mutex.Lock()
+		defer mutex.Unlock()
 		file, err := os.ReadFile("/data/tokens.json")
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -102,6 +104,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Read the existing tokens
 	mutex.Lock()
+	defer mutex.Unlock()
 	file, err := os.ReadFile("/data/tokens.json")
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -130,6 +133,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mutex.Lock()
+	defer mutex.Unlock()
 	err = os.WriteFile("/data/tokens.json", updatedData, 0644)
 	if err != nil {
 		http.Error(w, "Error writing to file", http.StatusInternalServerError)
@@ -186,6 +190,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mutex.Lock()
+	defer mutex.Unlock()
 	file, err := os.ReadFile("/data/tokens.json")
 	if err != nil {
 		http.Error(w, "Error reading file", http.StatusInternalServerError)
@@ -213,6 +218,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 				userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
 
 			mutex.Lock()
+			defer mutex.Unlock()
 			err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
 			if err != nil {
 				log.Println("Error adding roll to user:", err)
@@ -230,6 +236,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			mutex.Lock()
+			defer mutex.Unlock()
 			err = os.WriteFile("/data/tokens.json", updatedData, 0644)
 			mutex.Unlock()
 

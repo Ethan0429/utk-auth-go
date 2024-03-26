@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+	"strings"
 	"utk-auth-go/src/pkg/auth"
 	"utk-auth-go/src/pkg/authserver"
 	"utk-auth-go/src/pkg/utils"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/joho/godotenv"
 )
 
 var session *discordgo.Session
@@ -110,6 +112,43 @@ var (
 					),
 				})
 				return
+			}
+
+			// check if student is already authenticated
+			if course, err := utils.GetCourseObject(i.GuildID); err != nil {
+				log.Println("Something went wrong while getting course object for guildId:", i.GuildID)
+				s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+					Content: utils.StrPtr(""),
+					Embeds: utils.NewEmbeds(
+						utils.NewEmbed(
+							"Authentication",
+							"Something went wrong while checking your verification status.",
+							0xff4400,
+							nil,
+						),
+					),
+				})
+				return
+			} else {
+				authRoleID := course.AuthRoleId
+				log.Println(i.User.Username + " role list: [" + strings.Join(i.Member.Roles, ", ") + "]")
+				for _, role := range i.Member.Roles {
+					if role == authRoleID {
+						log.Println("User is already authenticated")
+						s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
+							Content: utils.StrPtr(""),
+							Embeds: utils.NewEmbeds(
+								utils.NewEmbed(
+									"Authentication",
+									"You've already been verified.",
+									0xff4400,
+									nil,
+								),
+							),
+						})
+						return
+					}
+				}
 			}
 
 			// send authentication email

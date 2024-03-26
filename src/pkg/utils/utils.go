@@ -5,8 +5,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"os"
+	"sync"
 	"utk-auth-go/src/pkg/canvas"
 )
+
+var mutex sync.Mutex
 
 type ServerConfig struct {
 	Courses []canvas.Course `json:"courses"`
@@ -154,14 +157,14 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 		}
 	}
 
-	students, err := canvas.GetCourseStudents(courseId, canvasSecret)
+	students, err := canvas.GetCourseStudents(os.Getenv("UTK_CANVAS_COURSE_ID_PREFIX")+courseId, canvasSecret)
 	if err != nil {
 		return err
 	}
 	newCourse := canvas.Course{
 		GuildId:      guildId,
 		CanvasSecret: canvasSecret,
-		CourseId:     courseId,
+		CourseId:     os.Getenv("UTK_CANVAS_COURSE_ID_PREFIX") + courseId,
 		Students:     students,
 		AuthRoleId:   authRoleId,
 	}
@@ -177,4 +180,30 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 		return err
 	}
 	return nil
+}
+
+func GetCourseObject(guildID string) (*canvas.Course, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	file, err := os.ReadFile("/data/server_config.json")
+	if err != nil {
+		log.Println("Error reading server_config.json while getting course object:", err)
+		return nil, err
+	}
+	if len(file) == 0 {
+		return nil, nil
+	}
+	var serverConfig ServerConfig
+	err = json.Unmarshal(file, &serverConfig)
+	if err != nil {
+		log.Println("Error unmarshalling server_config.json while getting course object:", err)
+		return nil, err
+	}
+	for _, course := range serverConfig.Courses {
+		if course.GuildId == guildID {
+			return &course, nil
+		}
+	}
+	return nil, nil
 }

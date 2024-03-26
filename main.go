@@ -131,7 +131,10 @@ var (
 				return
 			} else {
 				authRoleID := course.AuthRoleId
-				log.Println(i.User.Username + " role list: [" + strings.Join(i.Member.Roles, ", ") + "]")
+				log.Println(i.User.Username + " role list: ")
+				for _, role := range i.Member.Roles {
+					log.Printf("   Role: %s\n", role)
+				}
 				for _, role := range i.Member.Roles {
 					if role == authRoleID {
 						log.Println("User is already authenticated")

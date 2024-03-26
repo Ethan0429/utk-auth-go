@@ -92,7 +92,6 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		mutex.Unlock()
 	}
 
 	token, err := generateToken()
@@ -103,24 +102,25 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the existing tokens
-	mutex.Lock()
-	defer mutex.Unlock()
-	file, err := os.ReadFile("/data/tokens.json")
-	if err != nil {
-		if !os.IsNotExist(err) {
-			http.Error(w, "Error reading file", http.StatusInternalServerError)
+	var tokens map[string]TokenData
+	{
+		mutex.Lock()
+		defer mutex.Unlock()
+		file, err := os.ReadFile("/data/tokens.json")
+		if err != nil {
+			if !os.IsNotExist(err) {
+				http.Error(w, "Error reading file", http.StatusInternalServerError)
+				return
+			}
+			file = []byte("{}") // If the file does not exist, start with an empty JSON object
+		}
+
+		err = json.Unmarshal(file, &tokens)
+		if err != nil {
+			http.Error(w, "Error parsing file", http.StatusInternalServerError)
 			return
 		}
-		file = []byte("{}") // If the file does not exist, start with an empty JSON object
 	}
-
-	var tokens map[string]TokenData
-	err = json.Unmarshal(file, &tokens)
-	if err != nil {
-		http.Error(w, "Error parsing file", http.StatusInternalServerError)
-		return
-	}
-	mutex.Unlock()
 
 	// Add or update the token for the user
 	tokens[userDiscordID] = TokenData{Token: token, GuildID: guildDiscordID}
@@ -132,14 +132,15 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
-	err = os.WriteFile("/data/tokens.json", updatedData, 0644)
-	if err != nil {
-		http.Error(w, "Error writing to file", http.StatusInternalServerError)
-		return
+	{
+		mutex.Lock()
+		defer mutex.Unlock()
+		err = os.WriteFile("/data/tokens.json", updatedData, 0644)
+		if err != nil {
+			http.Error(w, "Error writing to file", http.StatusInternalServerError)
+			return
+		}
 	}
-	mutex.Unlock()
 
 	response := ApiResponse{Success: true, Message: "Token generated successfully", Data: TokenResponse{Token: token}}
 	w.Header().Set("Content-Type", "application/json")
@@ -189,21 +190,22 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
-	file, err := os.ReadFile("/data/tokens.json")
-	if err != nil {
-		http.Error(w, "Error reading file", http.StatusInternalServerError)
-		return
-	}
-
 	var tokens map[string]TokenData
-	err = json.Unmarshal(file, &tokens)
-	if err != nil {
-		http.Error(w, "Error parsing file", http.StatusInternalServerError)
-		return
+	{
+		mutex.Lock()
+		defer mutex.Unlock()
+		file, err := os.ReadFile("/data/tokens.json")
+		if err != nil {
+			http.Error(w, "Error reading file", http.StatusInternalServerError)
+			return
+		}
+
+		err = json.Unmarshal(file, &tokens)
+		if err != nil {
+			http.Error(w, "Error parsing file", http.StatusInternalServerError)
+			return
+		}
 	}
-	mutex.Unlock()
 
 	if tokenData, ok := tokens[userDiscordID]; ok {
 		if tokenData.Token == token {
@@ -217,14 +219,15 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 				"   Role ID: %s\n",
 				userDiscordID, tokens[userDiscordID].GuildID, os.Getenv("AUTH_ROLE_ID"))
 
-			mutex.Lock()
-			defer mutex.Unlock()
-			err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
-			if err != nil {
-				log.Println("Error adding roll to user:", err)
+			{
+				mutex.Lock()
+				defer mutex.Unlock()
+				err := session.GuildMemberRoleAdd(tokens[userDiscordID].GuildID, userDiscordID, os.Getenv("AUTH_ROLE_ID"))
+				if err != nil {
+					log.Println("Error adding roll to user:", err)
+				}
+				log.Println("Role added successfully")
 			}
-			log.Println("Role added successfully")
-			mutex.Unlock()
 
 			// remove key from map
 			delete(tokens, userDiscordID)
@@ -235,10 +238,11 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Error marshalling JSON", http.StatusInternalServerError)
 			}
 
-			mutex.Lock()
-			defer mutex.Unlock()
-			err = os.WriteFile("/data/tokens.json", updatedData, 0644)
-			mutex.Unlock()
+			{
+				mutex.Lock()
+				defer mutex.Unlock()
+				err = os.WriteFile("/data/tokens.json", updatedData, 0644)
+			}
 
 			if err != nil {
 				http.Error(w, "Error writing to file", http.StatusInternalServerError)

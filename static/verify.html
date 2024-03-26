@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Verification</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .container {
+        background-color: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      h2 {
+        color: #333;
+      }
+      p {
+        color: #666;
+      }
+      .verify-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 15px 25px;
+        margin: 20px 0;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      .verify-button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Email Verification</h2>
+      <p>Please click the button below to verify your email address.</p>
+      <form action="" method="POST">
+        <input
+          type="hidden"
+          name="user-discord-id"
+          value="{{USER_DISCORD_ID}}"
+        />
+        <input type="hidden" name="token" value="{{TOKEN}}" />
+        <button type="submit" class="verify-button">Verify Email</button>
+      </form>
+    </div>
+  </body>
+</html>

@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -143,39 +144,31 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 // Handler for verifying user token
 func VerifyHandler(w http.ResponseWriter, r *http.Request) {
-	userDiscordID := r.URL.Query().Get("user-discord-id")
-	token := r.URL.Query().Get("token")
-
-	if userDiscordID == "" || token == "" {
-		http.Error(w, "Missing parameters", http.StatusBadRequest)
-		return
-	}
-
-	// Serve the HTML page on a GET request
+	// Check for GET request to serve the HTML page
 	if r.Method == "GET" {
+		userDiscordID := r.URL.Query().Get("user-discord-id")
+		token := r.URL.Query().Get("token")
+
+		if userDiscordID == "" || token == "" {
+			http.Error(w, "Missing parameters", http.StatusBadRequest)
+			return
+		}
+
+		// Load HTML content from file
+		htmlContent, err := os.ReadFile("./static/verify.html")
+		if err != nil {
+			http.Error(w, "Error loading verification page", http.StatusInternalServerError)
+			return
+		}
+
+		// Replace placeholders with actual values
+		pageContent := strings.Replace(string(htmlContent), "{{USER_DISCORD_ID}}", userDiscordID, -1)
+		pageContent = strings.Replace(pageContent, "{{TOKEN}}", token, -1)
+
 		w.Header().Set("Content-Type", "text/html")
-		w.WriteHeader(http.StatusOK)
-		htmlContent := fmt.Sprintf(`
-			<!DOCTYPE html>
-			<html>
-			<head>
-				<title>Verify Email</title>
-			</head>
-			<body>
-				<h2>Email Verification</h2>
-				<p>Click the button below to verify your email.</p>
-				<form action="" method="POST">
-					<input type="hidden" name="user-discord-id" value="%s">
-					<input type="hidden" name="token" value="%s">
-					<button type="submit">Verify Email</button>
-				</form>
-			</body>
-			</html>
-		`, userDiscordID, token)
-		w.Write([]byte(htmlContent))
+		w.Write([]byte(pageContent))
 		return
 	}
-
 	// From here on, handle POST requests
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -183,10 +176,8 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handling POST request: Your existing logic with minor adjustments
-	// Now using `FormValue` to get data, as it is sent via form submission
-	userDiscordID = r.FormValue("user-discord-id")
-	token = r.FormValue("token")
+	userDiscordID := r.FormValue("user-discord-id")
+	token := r.FormValue("token")
 
 	if userDiscordID == "" || token == "" {
 		json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: "Missing parameters"})

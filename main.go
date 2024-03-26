@@ -252,7 +252,7 @@ var (
 			}
 
 			{
-				err := utils.RegisterCourse(guildId, canvasSecret, courseId, authRoleId)
+				err := utils.RegisterCourse(os.Getenv("UTK_CANVAS_COURSE_ID_PREFIX")+guildId, canvasSecret, courseId, authRoleId)
 				if err != nil {
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &failString,

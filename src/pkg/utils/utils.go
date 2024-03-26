@@ -157,14 +157,14 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 		}
 	}
 
-	students, err := canvas.GetCourseStudents(os.Getenv("UTK_CANVAS_COURSE_ID_PREFIX")+courseId, canvasSecret)
+	students, err := canvas.GetCourseStudents(courseId, canvasSecret)
 	if err != nil {
 		return err
 	}
 	newCourse := canvas.Course{
 		GuildId:      guildId,
 		CanvasSecret: canvasSecret,
-		CourseId:     os.Getenv("UTK_CANVAS_COURSE_ID_PREFIX") + courseId,
+		CourseId:     courseId,
 		Students:     students,
 		AuthRoleId:   authRoleId,
 	}

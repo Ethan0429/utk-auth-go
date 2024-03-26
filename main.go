@@ -23,8 +23,8 @@ func init() {
 
 	{
 		// create file server_config.json if it doesn't exist
-		if _, err := os.Stat("/data/server_config.json"); os.IsNotExist(err) {
-			file, err := os.Create("/data/server_config.json")
+		if _, err := os.Stat("./data/server_config.json"); os.IsNotExist(err) {
+			file, err := os.Create("./data/server_config.json")
 			if err != nil {
 				log.Println("Error creating server_config.json")
 			}
@@ -216,6 +216,7 @@ var (
 					s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
 						Content: &failString,
 					})
+					log.Println(err)
 					return
 				}
 			}

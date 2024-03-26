@@ -1,3 +1,5 @@
 .env
 utk-auth-go
 *.json
+tests/
+data/

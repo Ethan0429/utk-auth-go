@@ -3,8 +3,8 @@ package utils
 import (
 	"encoding/json"
 	"github.com/bwmarrin/discordgo"
-	"io/ioutil"
 	"log"
+	"os"
 	"utk-auth-go/src/pkg/canvas"
 )
 
@@ -40,7 +40,7 @@ func NewEmbeds(embeds ...*discordgo.MessageEmbed) *[]*discordgo.MessageEmbed {
 
 func StudentExists(guildId string, netId string) (bool, error) {
 	// open /data/server_config.json and check if student exists in any courses
-	file, err := ioutil.ReadFile("/data/server_config.json")
+	file, err := os.ReadFile("/data/server_config.json")
 	if err != nil {
 		log.Println("Error reading server_config.json while checking for student:", err)
 		return false, err
@@ -75,7 +75,7 @@ func StudentExists(guildId string, netId string) (bool, error) {
 }
 
 func GuildIdExists(guildId string) (bool, error) {
-	file, err := ioutil.ReadFile("/data/server_config.json")
+	file, err := os.ReadFile("/data/server_config.json")
 	if err != nil {
 		log.Println("Error reading server_config.json while checking for guildId:", err)
 		return false, err
@@ -134,7 +134,7 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 	log.Println("Registering course for guildId:", guildId)
 
 	// open /data/server_config.json and add a new course to the list
-	file, err := ioutil.ReadFile("/data/server_config.json")
+	file, err := os.ReadFile("/data/server_config.json")
 	if err != nil {
 		log.Println("Error reading server_config.json while registering course:", err)
 		return err
@@ -171,7 +171,7 @@ func RegisterCourse(guildId string, canvasSecret string, courseId string, authRo
 		log.Println("Error marshalling server_config.json while registering course")
 		return err
 	}
-	err = ioutil.WriteFile("/data/server_config.json", serverConfigBytes, 0644)
+	err = os.WriteFile("/data/server_config.json", serverConfigBytes, 0644)
 	if err != nil {
 		log.Println("Error writing server_config.json while registering course")
 		return err

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/smtp"
@@ -109,7 +109,7 @@ func RequestAuthUrl(preAuthUser *PreAuthUser) string {
 		log.Println(err)
 		return "[Something went wrong while sending the request to the authentication server. Try again.]"
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}

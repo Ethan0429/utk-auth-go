@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -73,7 +72,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	// check if id already exists
 	{
 		mutex.Lock()
-		file, err := ioutil.ReadFile("/data/tokens.json")
+		file, err := os.ReadFile("/data/tokens.json")
 		if err != nil {
 			if !os.IsNotExist(err) {
 				http.Error(w, "tokens.json does not exist", http.StatusInternalServerError)
@@ -102,7 +101,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Read the existing tokens
 	mutex.Lock()
-	file, err := ioutil.ReadFile("/data/tokens.json")
+	file, err := os.ReadFile("/data/tokens.json")
 	if err != nil {
 		if !os.IsNotExist(err) {
 			http.Error(w, "Error reading file", http.StatusInternalServerError)
@@ -130,7 +129,7 @@ func GenerateUserTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mutex.Lock()
-	err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
+	err = os.WriteFile("/data/tokens.json", updatedData, 0644)
 	if err != nil {
 		http.Error(w, "Error writing to file", http.StatusInternalServerError)
 		return
@@ -160,7 +159,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mutex.Lock()
-	file, err := ioutil.ReadFile("/data/tokens.json")
+	file, err := os.ReadFile("/data/tokens.json")
 	if err != nil {
 		http.Error(w, "Error reading file", http.StatusInternalServerError)
 		return
@@ -204,7 +203,7 @@ func VerifyHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			mutex.Lock()
-			err = ioutil.WriteFile("/data/tokens.json", updatedData, 0644)
+			err = os.WriteFile("/data/tokens.json", updatedData, 0644)
 			mutex.Unlock()
 
 			if err != nil {

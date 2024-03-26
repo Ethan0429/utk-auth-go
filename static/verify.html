@@ -7,30 +7,32 @@
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f4f7f6;
+        background-color: #121212; /* Dark background */
         margin: 0;
         padding: 0;
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
+        color: #e0e0e0; /* Light text color for dark mode */
       }
       .container {
-        background-color: white;
+        background-color: #333333; /* Darker shade for the container */
         padding: 40px;
         border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1); /* Lighter shadow for dark mode */
         text-align: center;
       }
       h2 {
-        color: #333;
+        color: #fff; /* White color for headers */
       }
       p {
-        color: #666;
+        color: #bbb; /* Lighter text color for paragraphs */
       }
       .verify-button {
-        background-color: #4caf50;
+        background-color: #ff9800; /* Orange background for the button */
         color: white;
+        font-weight: bold;
         padding: 15px 25px;
         margin: 20px 0;
         border: none;
@@ -39,7 +41,9 @@
         font-size: 16px;
       }
       .verify-button:hover {
-        background-color: #45a049;
+        background-color: white; /* Darker orange on hover */
+        color: #e68a00;
+        transition: 0.5s ease;
       }
     </style>
   </head>

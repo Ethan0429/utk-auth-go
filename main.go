@@ -130,7 +130,7 @@ var (
 				return
 			} else {
 				authRoleID := course.AuthRoleId
-				log.Println(i.User.Username + " role list: ")
+				log.Println(i.Member.User.Username + " role list: ")
 				for _, role := range i.Member.Roles {
 					log.Printf("   Role: %s\n", role)
 				}

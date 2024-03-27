@@ -117,6 +117,7 @@ func RequestAuthUrl(preAuthUser *PreAuthUser) string {
 	var response authserver.ApiResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
+		log.Println("Response body causing error:", body)
 		log.Fatal(err)
 	}
 
